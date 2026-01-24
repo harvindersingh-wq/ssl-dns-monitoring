@@ -27,7 +27,7 @@ DOMAINS = [
     "hvkyc.zebpay.com",
     "app.zebpay.com",
     "public.zebpay.com",
-    "zebapi.com",
+    # "zebapi.com",  # removed
     "walletdashboard.zebpay.co",
     "techsupport.zebpay.co",
     "download.zebpay.com",
@@ -35,6 +35,12 @@ DOMAINS = [
     "api.zebpay.com",
     "onboarding.zebpay.com",
 ]
+
+# Hosts that should NOT be TLS-validated because they are external aliases
+# (DNS may point to a third-party that will not serve a cert for zebpay.com hostnames)
+SKIP_SSL = {
+    "enterpriseenrollment.zebpay.com",  # CNAME to Microsoft; cert mismatch expected
+}
 
 alerts = []
 healthy = []
@@ -53,12 +59,10 @@ def check_dns(domain):
     with a single retry to avoid transient resolver flaps.
     """
     last_err = None
-
     for attempt in range(2):
         try:
             infos = socket.getaddrinfo(domain, None, proto=socket.IPPROTO_TCP)
             ips = sorted({info[4][0] for info in infos})
-
             if not ips:
                 raise RuntimeError("No A/AAAA addresses returned")
 
@@ -68,7 +72,7 @@ def check_dns(domain):
         except Exception as e:
             last_err = e
             if attempt == 0:
-                time.sleep(1)  # short backoff then retry once
+                time.sleep(1)
 
     msg = f"❌ DNS FAILED: {domain} → {last_err}"
     print(msg)
@@ -114,7 +118,10 @@ for domain in DOMAINS:
     print(f"Checking {domain}...")
 
     if check_dns(domain):
-        check_ssl(domain)
+        if domain in SKIP_SSL:
+            print(f"SSL SKIP: {domain} (external alias; cert mismatch expected)")
+        else:
+            check_ssl(domain)
 
 print("\n===================================")
 
