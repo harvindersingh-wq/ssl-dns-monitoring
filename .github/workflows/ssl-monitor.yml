@@ -2,7 +2,8 @@ name: SSL & DNS Monitor
 
 on:
   schedule:
-    - cron: '0 9 * * *'
+    # 10:00 AM IST = 04:30 AM UTC (GitHub Actions cron uses UTC)
+    - cron: '30 4 * * *'
   workflow_dispatch:
 
 jobs:
