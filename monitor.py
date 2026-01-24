@@ -2,6 +2,7 @@ import socket
 import ssl
 import datetime
 import os
+import time
 import requests
 
 DOMAINS = [
@@ -47,15 +48,32 @@ def send_slack(message):
 
 # ---------------- DNS Check ----------------
 def check_dns(domain):
-    try:
-        records = socket.gethostbyname_ex(domain)[2]
-        print(f"DNS OK: {domain} resolves to {', '.join(records)}")
-        return True
-    except Exception as e:
-        msg = f"❌ DNS FAILED: {domain} → {e}"
-        print(msg)
-        alerts.append(msg)
-        return False
+    """
+    Resolve both IPv4 (A) and IPv6 (AAAA) using getaddrinfo(),
+    with a single retry to avoid transient resolver flaps.
+    """
+    last_err = None
+
+    for attempt in range(2):
+        try:
+            infos = socket.getaddrinfo(domain, None, proto=socket.IPPROTO_TCP)
+            ips = sorted({info[4][0] for info in infos})
+
+            if not ips:
+                raise RuntimeError("No A/AAAA addresses returned")
+
+            print(f"DNS OK: {domain} resolves to {', '.join(ips)}")
+            return True
+
+        except Exception as e:
+            last_err = e
+            if attempt == 0:
+                time.sleep(1)  # short backoff then retry once
+
+    msg = f"❌ DNS FAILED: {domain} → {last_err}"
+    print(msg)
+    alerts.append(msg)
+    return False
 
 # ---------------- SSL Check ----------------
 def check_ssl(domain):
