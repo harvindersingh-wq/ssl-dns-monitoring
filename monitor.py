@@ -11,7 +11,7 @@ import dns.exception
 
 DOMAINS = [
     "charts.zebpay.com",
-    "auth.zebpay.com",
+    # "auth.zebpay.com",
     "blog.zebpay.com",
     "chart.zebpay.com",
     "link.zebpay.com",
