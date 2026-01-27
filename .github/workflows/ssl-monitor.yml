@@ -24,3 +24,9 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python monitor.py
+
+        - name: Print time
+  run: |
+    date
+    date -u
+
